@@ -1,66 +1,112 @@
 const express = require('express');
-const { moviesMock } = require('../MOCK_DATA');
+const MoviesService = require('../services/movies');
+const validationHandler = require('../utils/middleware/validationHandler');
+const {
+    movieIdSchema,
+    createMovieSchema,
+    updateMovieSchema
+} = require('../utils/schemas/movies')
 
- function moviesApi(app) {
-     const router = express.Router();
-     app.use ("/api/movies", router);
+function moviesApi(app) {
+    const router = express.Router();
+    app.use("/api/movies", router);
 
-     router.get("/", async (req, res, next) => {
+    moviesService = new MoviesService();
+
+    router.get("/", async (req, res, next) => {
+        const {
+            tags
+        } = req.query;
         try {
-            const movies = await Promise.resolve(moviesMock);
+            const movies = await moviesService.getMovies({
+                tags
+            });
             res.status(200).json({
                 data: movies,
                 message: 'movies listed'
             })
-        } catch (error) {
+        } catch (err) {
             next(err);
         }
-     })
-     router.get("/:movieId", async (req, res, next) => {
+    })
+
+    router.get("/:movieId", validationHandler({
+        movieId: movieIdSchema
+    }, 'params'), async (req, res, next) => {
+        const {
+            movieId
+        } = req.params;
         try {
-            console.log(moviesMock[0]);
-            const movie = await Promise.resolve(moviesMock[0]);
+            const movie = await moviesService.getMovie({
+                movieId
+            });
             res.status(200).json({
                 data: movie,
                 message: 'movies retrieved'
             })
-        } catch (error) {
+        } catch (err) {
             next(err);
         }
-     })
-     router.post("/", async (req, res, next) => {
+    })
+
+    router.post("/", validationHandler(createMovieSchema), async (req, res, next) => {
+        const {
+            body: movie
+        } = req;
         try {
-            const createdMovieId = await Promise.resolve(moviesMock[0].id);
+            const createdMovieId = await moviesService.createMovie({
+                movie
+            });
             res.status(201).json({
                 data: createdMovieId,
                 message: 'movies created'
             })
-        } catch (error) {
+        } catch (err) {
             next(err);
         }
-     })
-     router.put("/:movieId", async (req, res, next) => {
+    })
+
+    router.put("/:movieId", validationHandler({
+        movieId: movieIdSchema
+    }, 'params'), validationHandler(updateMovieSchema), async (req, res, next) => {
+        const {
+            movieId
+        } = req.params;
+        const {
+            body: movie
+        } = req;
         try {
-            const updatedMovieId = await Promise.resolve(moviesMock[0].id);
-            res.status(200).json({ 
+            const updatedMovieId = await moviesService.updateMovie({
+                movieId,
+                movie
+            });
+            res.status(200).json({
                 data: updatedMovieId,
                 message: 'movies updated'
             })
-        } catch (error) {
+        } catch (err) {
             next(err);
         }
-     })
-     router.delete("/", async (req, res, next) => {
+    })
+
+    router.delete("/", validationHandler({
+        movieId: movieIdSchema
+    }, 'params'), async (req, res, next) => {
+        const {
+            movieId
+        } = req.params;
         try {
-            const deletedMovie = await Promise.resolve(moviesMock[0].id);
+            const deletedMovie = await moviesService.deleteMovie({
+                movieId
+            });
             res.status(200).json({
                 data: deletedMovie,
                 message: 'movies listed'
             })
-        } catch (error) {
+        } catch (err) {
             next(err);
         }
-     })
- }
+    })
+}
 
- module.exports = moviesApi;
+module.exports = moviesApi;
